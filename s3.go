@@ -9,12 +9,13 @@ import (
 	"time"
 )
 
-// TODO: S3 region and bucket name
-const regionName = "TODO"
-const bucketName = "TODO"
-// TODO: AWS S3 credentials that have premission to write into the bucket
-const accessKeyID = "TODO"
-const secretAccessKey = "TODO"
+// Represents AWS credentials and config.
+type Credentials struct {
+	Region string
+	Bucket string
+	AccessKeyID string
+	SecretAccessKey string
+}
 
 // Represents presigned POST information.
 type presignedPOST struct {
@@ -29,7 +30,7 @@ type presignedPOST struct {
 // Creates a new presigned POST.
 func NewPresignedPOST(p *policy) (*presignedPOST, error) {
 	b64Policy := p.Base64()
-	signature := createSignature(p.Region, p.Date[:8], b64Policy)
+	signature := createSignature(p.C, p.Date[:8], b64Policy)
 	action := fmt.Sprintf("https://%s.s3.amazonaws.com/", p.Bucket)
 	post := &presignedPOST{
 		Key: p.Key,
@@ -43,9 +44,9 @@ func NewPresignedPOST(p *policy) (*presignedPOST, error) {
 }
 
 // Creates the signature for a string.
-func createSignature(region, formattedShortTime, stringToSign string) string {
-	h1 := makeHmac([]byte("AWS4"+secretAccessKey), []byte(formattedShortTime))
-	h2 := makeHmac(h1, []byte(region))
+func createSignature(c *Credentials, formattedShortTime, stringToSign string) string {
+	h1 := makeHmac([]byte("AWS4"+c.SecretAccessKey), []byte(formattedShortTime))
+	h2 := makeHmac(h1, []byte(c.Region))
 	h3 := makeHmac(h2, []byte("s3"))
 	h4 := makeHmac(h3, []byte("aws4_request"))
 	signature := makeHmac(h4, []byte(stringToSign))
@@ -59,6 +60,7 @@ func makeHmac(key []byte, data []byte) []byte {
 	return hash.Sum(nil)
 }
 
+// Policy template.
 const policyDocument = `
 { "expiration": "%s",
   "conditions": [
@@ -88,22 +90,24 @@ type policy struct {
 	Key string
 	Credential string
 	Date string
+	C *Credentials
 }
 
 // Creates a new policy.
-func NewPolicy(key, region string) *policy {
+func NewPolicy(key string, c *Credentials) *policy {
 	// expires in 5 minutes
 	t := time.Now().Add(time.Minute * 5)
 	formattedShortTime := t.UTC().Format(shortTimeFormat)
 	date := t.UTC().Format(timeFormat)
-	cred := fmt.Sprintf("%s/%s/%s/s3/aws4_request", accessKeyID, formattedShortTime, region)
+	cred := fmt.Sprintf("%s/%s/%s/s3/aws4_request", c.AccessKeyID, formattedShortTime, c.Region)
 	return &policy{
 		Expiration: t.UTC().Format(expirationFormat),
-		Region: region,
-		Bucket: bucketName,
+		Region: c.Region,
+		Bucket: c.Bucket,
 		Key: key,
 		Credential: cred,
 		Date: date,
+		C: c,
 	}
 }
 
