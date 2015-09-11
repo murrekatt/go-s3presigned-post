@@ -18,7 +18,7 @@ type Credentials struct {
 }
 
 // Represents presigned POST information.
-type presignedPOST struct {
+type PresignedPOST struct {
 	Key string         `json:"key"`
 	Policy string      `json:"policy"`
 	Signature string   `json:"signature"`
@@ -28,11 +28,11 @@ type presignedPOST struct {
 }
 
 // Creates a new presigned POST.
-func NewPresignedPOST(p *policy) (*presignedPOST, error) {
+func NewPresignedPOST(p *policy) (*PresignedPOST, error) {
 	b64Policy := p.Base64()
 	signature := createSignature(p.C, p.Date[:8], b64Policy)
 	action := fmt.Sprintf("https://%s.s3.amazonaws.com/", p.Bucket)
-	post := &presignedPOST{
+	post := &PresignedPOST{
 		Key: p.Key,
 		Policy: b64Policy,
 		Signature: signature,
