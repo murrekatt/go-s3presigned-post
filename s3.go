@@ -68,7 +68,6 @@ const policyDocument = `
     {"bucket": "%s"},
     ["starts-with", "$key", "%s"],
     {"acl": "public-read"},
-    ["starts-with", "$x-amz-meta-tag", ""],
     ["content-length-range", 1, 524288],
 
     {"x-amz-credential": "%s"},
