@@ -28,7 +28,8 @@ type PresignedPOST struct {
 }
 
 // Creates a new presigned POST.
-func NewPresignedPOST(p *policy) (*PresignedPOST, error) {
+func NewPresignedPOST(key string, c *Credentials) (*PresignedPOST, error) {
+	p := NewPolicy(key, c)
 	b64Policy := p.Base64()
 	signature := createSignature(p.C, p.Date[:8], b64Policy)
 	action := fmt.Sprintf("https://%s.s3.amazonaws.com/", p.Bucket)
