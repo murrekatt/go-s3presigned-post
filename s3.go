@@ -15,7 +15,6 @@ type Credentials struct {
 	Bucket string
 	AccessKeyID string
 	SecretAccessKey string
-	RedirectURL string
 }
 
 // Represents presigned POST information.
@@ -24,7 +23,6 @@ type PresignedPOST struct {
 	Policy string      `json:"policy"`
 	Signature string   `json:"signature"`
 	Action string      `json:"action"`
-	RedirectURL string `json:"redirect"`
 	Credential string  `json:"credential"`
 	Date string        `json:"date"`
 }
@@ -40,7 +38,6 @@ func NewPresignedPOST(key string, c *Credentials) (*PresignedPOST, error) {
 		Policy: b64Policy,
 		Signature: signature,
 		Action: action,
-		RedirectURL: p.RedirectURL,
 		Credential: p.Credential,
 		Date: p.Date,
 	}
@@ -71,7 +68,6 @@ const policyDocument = `
     {"bucket": "%s"},
     ["starts-with", "$key", "%s"],
     {"acl": "public-read"},
-    {"success_action_redirect": "%s"},
     ["starts-with", "$x-amz-meta-tag", ""],
     ["content-length-range", 1, 524288],
 
@@ -94,7 +90,6 @@ type policy struct {
 	Region string
 	Bucket string
 	Key string
-	RedirectURL string
 	Credential string
 	Date string
 	C *Credentials
@@ -104,7 +99,6 @@ type policy struct {
 func NewPolicy(key string, c *Credentials) *policy {
 	// expires in 5 minutes
 	t := time.Now().Add(time.Minute * 5)
-	url := fmt.Sprintf("%s/%s", c.RedirectURL, key)
 	formattedShortTime := t.UTC().Format(shortTimeFormat)
 	date := t.UTC().Format(timeFormat)
 	cred := fmt.Sprintf("%s/%s/%s/s3/aws4_request", c.AccessKeyID, formattedShortTime, c.Region)
@@ -113,7 +107,6 @@ func NewPolicy(key string, c *Credentials) *policy {
 		Region: c.Region,
 		Bucket: c.Bucket,
 		Key: key,
-		RedirectURL: url,
 		Credential: cred,
 		Date: date,
 		C: c,
@@ -126,7 +119,6 @@ func (p *policy) String() string {
 		p.Expiration,
 		p.Bucket,
 		p.Key,
-		p.RedirectURL,
 		p.Credential,
 		p.Date,
 	)
