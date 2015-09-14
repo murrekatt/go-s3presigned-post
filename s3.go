@@ -74,7 +74,7 @@ const policyDocument = `
     {"bucket": "%s"},
     ["starts-with", "$key", "%s"],
     {"acl": "public-read"},
-    ["content-length-range", 1, %s],
+    ["content-length-range", 1, %d],
 
     {"x-amz-credential": "%s"},
     {"x-amz-algorithm": "AWS4-HMAC-SHA256"},
