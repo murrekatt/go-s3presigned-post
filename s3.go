@@ -17,6 +17,12 @@ type Credentials struct {
 	SecretAccessKey string
 }
 
+// Represents policy options.
+type PolicyOptions struct {
+	ExpiryMinutes int
+	MaxFileSize int
+}
+
 // Represents presigned POST information.
 type PresignedPOST struct {
 	Key string         `json:"key"`
@@ -28,8 +34,8 @@ type PresignedPOST struct {
 }
 
 // Creates a new presigned POST.
-func NewPresignedPOST(key string, c *Credentials) (*PresignedPOST, error) {
-	p := NewPolicy(key, c)
+func NewPresignedPOST(key string, c *Credentials, o *PolicyOptions) (*PresignedPOST, error) {
+	p := NewPolicy(key, c, o)
 	b64Policy := p.Base64()
 	signature := createSignature(p.C, p.Date[:8], b64Policy)
 	action := fmt.Sprintf("https://%s.s3.amazonaws.com/", p.Bucket)
@@ -68,7 +74,7 @@ const policyDocument = `
     {"bucket": "%s"},
     ["starts-with", "$key", "%s"],
     {"acl": "public-read"},
-    ["content-length-range", 1, 524288],
+    ["content-length-range", 1, %s],
 
     {"x-amz-credential": "%s"},
     {"x-amz-algorithm": "AWS4-HMAC-SHA256"},
@@ -92,12 +98,12 @@ type policy struct {
 	Credential string
 	Date string
 	C *Credentials
+	O *PolicyOptions
 }
 
 // Creates a new policy.
-func NewPolicy(key string, c *Credentials) *policy {
-	// expires in 5 minutes
-	t := time.Now().Add(time.Minute * 5)
+func NewPolicy(key string, c *Credentials, o *PolicyOptions) *policy {
+	t := time.Now().Add(time.Minute * time.Duration(o.ExpiryMinutes))
 	formattedShortTime := t.UTC().Format(shortTimeFormat)
 	date := t.UTC().Format(timeFormat)
 	cred := fmt.Sprintf("%s/%s/%s/s3/aws4_request", c.AccessKeyID, formattedShortTime, c.Region)
@@ -109,6 +115,7 @@ func NewPolicy(key string, c *Credentials) *policy {
 		Credential: cred,
 		Date: date,
 		C: c,
+		O: o,
 	}
 }
 
@@ -118,6 +125,7 @@ func (p *policy) String() string {
 		p.Expiration,
 		p.Bucket,
 		p.Key,
+		p.O.MaxFileSize,
 		p.Credential,
 		p.Date,
 	)
